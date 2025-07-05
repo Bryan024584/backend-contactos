@@ -12,15 +12,18 @@ router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    // Verificar si ya existe el email
+    console.log('📥 Registro recibido:', req.body);
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'El email ya está registrado.' });
 
-    // Hashear contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Crear usuario
     const newUser = new User({
       username,
       email,
@@ -31,7 +34,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ message: 'Usuario registrado correctamente.' });
 
   } catch (error) {
-    console.error(error);
+    console.error('🔥 Error en /register:', error);
     res.status(500).json({ message: 'Error del servidor.' });
   }
 });
@@ -41,20 +44,31 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Verificar usuario
+    console.log('🔐 Login recibido:', req.body);
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email y contraseña son obligatorios.' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado.' });
+    if (!user) {
+      console.log('❌ Usuario no encontrado:', email);
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
 
-    // Comparar contraseña
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect) return res.status(400).json({ message: 'Contraseña incorrecta.' });
+    if (!isPasswordCorrect) {
+      console.log('❌ Contraseña incorrecta para:', email);
+      return res.status(400).json({ message: 'Contraseña incorrecta.' });
+    }
 
-    // Generar token JWT
     const token = jwt.sign(
       { id: user._id, email: user.email },
-      'tu_secreto_super_seguro', // cambia esto por una variable de entorno
+      process.env.JWT_SECRET || 'tu_secreto_super_seguro',
       { expiresIn: '1d' }
     );
+
+    console.log('✅ Login exitoso para:', email);
 
     res.json({
       message: 'Login exitoso.',
@@ -67,7 +81,7 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('🔥 Error en /login:', error);
     res.status(500).json({ message: 'Error del servidor.' });
   }
 });
