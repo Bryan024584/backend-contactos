@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+require('dotenv').config(); // 👈 Asegúrate de cargar las variables de entorno
 
 const contactRoutes = require('./routes/contactRoutes');
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes'); // 👈 Mueve esto arriba
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
@@ -15,18 +16,23 @@ app.use(express.json());
 // Rutas
 app.use('/api', contactRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes); // 👈 Asegúrate de que esté antes del listen
+app.use('/api/users', userRoutes);
 
 // Conexión a MongoDB
-mongoose.connect('mongodb://localhost:27017/mi_agenda', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB conectado'))
-.catch(err => console.error('❌ Error conectando a MongoDB:', err));
+const mongoURI = process.env.MONGO_URI;
 
-// Iniciar servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
-});
+console.log('🌐 URI de conexión:', mongoURI); // 👈 Verifica que se esté leyendo bien
+
+mongoose.connect(mongoURI)
+  .then(() => {
+    console.log('✅ Conectado a MongoDB');
+
+    // Iniciar servidor solo después de conectar a la base de datos
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Error conectando a MongoDB:', err);
+  });
